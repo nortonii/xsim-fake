@@ -271,8 +271,15 @@ class GaussianSceneModel(nn.Module):
         opacity = self.get_lidar_opacity()
         target_vertical_angles_deg = vertical_angles_deg or lidar_vertical_angles_deg
         row_azimuth_offsets_deg = None
+        apply_vertical_warp = bool(target_vertical_angles_deg)
         if self._lidar_render_config is not None:
             row_azimuth_offsets_deg = getattr(self._lidar_render_config, "lidar_row_azimuth_offsets_deg", None)
+            dataset_mode = str(getattr(self._lidar_render_config, "mode", "") or "").strip().lower()
+            if dataset_mode == "kitti_r":
+                # KITTI_R uses the target angle table inside the projection itself.
+                # Do not apply a second post-warp/resample step.
+                row_azimuth_offsets_deg = None
+                apply_vertical_warp = False
         if self._lidar_render_backend == "gsplat_ut":
             depth_map, alpha_map = self._render_lidar_gsplat_ut(
                 means=means,
@@ -310,7 +317,7 @@ class GaussianSceneModel(nn.Module):
                 near_plane=near_plane,
                 far_plane=far_plane,
             )
-            if target_vertical_angles_deg is not None and len(target_vertical_angles_deg) > 0:
+            if apply_vertical_warp:
                 warped_alpha = warp_depth_to_vertical_angles(
                     depth=alpha_map,
                     target_vertical_angles_deg=target_vertical_angles_deg,
@@ -333,7 +340,7 @@ class GaussianSceneModel(nn.Module):
                 alpha=alpha_map,
                 extras={
                     "lidar_impl": "spherical_proxy_ut",
-                    "lidar_sampling": "uniform_then_angle_resample" if target_vertical_angles_deg else "projection_only",
+                    "lidar_sampling": "uniform_then_angle_resample" if apply_vertical_warp else "projection_only",
                 },
             )
 
@@ -352,7 +359,7 @@ class GaussianSceneModel(nn.Module):
                 near_plane=near_plane,
                 far_plane=far_plane,
             )
-            if target_vertical_angles_deg is not None and len(target_vertical_angles_deg) > 0:
+            if apply_vertical_warp:
                 warped_alpha = warp_depth_to_vertical_angles(
                     depth=alpha_map,
                     target_vertical_angles_deg=target_vertical_angles_deg,
@@ -375,7 +382,7 @@ class GaussianSceneModel(nn.Module):
                 alpha=alpha_map,
                 extras={
                     "lidar_impl": "spherical_proxy",
-                    "lidar_sampling": "uniform_then_angle_resample" if target_vertical_angles_deg else "projection_only",
+                    "lidar_sampling": "uniform_then_angle_resample" if apply_vertical_warp else "projection_only",
                 },
             )
 
@@ -392,7 +399,7 @@ class GaussianSceneModel(nn.Module):
             near_plane=near_plane,
             far_plane=far_plane,
         )
-        if target_vertical_angles_deg is not None and len(target_vertical_angles_deg) > 0:
+        if apply_vertical_warp:
             warped_alpha = warp_depth_to_vertical_angles(
                 depth=alpha_map,
                 target_vertical_angles_deg=target_vertical_angles_deg,
@@ -415,7 +422,7 @@ class GaussianSceneModel(nn.Module):
             alpha=alpha_map,
             extras={
                 "lidar_impl": "gsplat_spherical",
-                "lidar_sampling": "uniform_then_angle_resample" if target_vertical_angles_deg else "uniform",
+                "lidar_sampling": "uniform_then_angle_resample" if apply_vertical_warp else "uniform",
             },
         )
 
