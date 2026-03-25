@@ -6,22 +6,28 @@
 
 - Preferred launcher for the current default setup:
   ```bash
-  bash run_joint_proxy_train.sh
+  bash run_joint_proxy_train.sh /path/to/kitti-root
   ```
   This runs `train.py` with `configs/hdl64e_gsplat_joint_proxy_kitti_interp.yaml` and sets:
   ```bash
   TORCH_EXTENSIONS_DIR=/tmp/torch_extensions
   PYTHONPATH=src:submodules/gsplat_upstream_clean
   ```
+  Dataset paths are passed in via the first script argument (or `DATASET_ROOT=...`), not hardcoded in YAML.
 
 - Direct training command:
   ```bash
-  python train.py --config configs/hdl64e_gsplat_joint_proxy_kitti_interp.yaml
+  python train.py --config configs/hdl64e_gsplat_joint_proxy_kitti_interp.yaml --dataset-root /path/to/kitti-root
   ```
 
 - Train with a different config:
   ```bash
-  python train.py --config configs/waymo.yaml
+  python train.py --config configs/waymo.yaml --dataset-root /path/to/waymo-root
+  ```
+
+- Train PandaSet with the new override path:
+  ```bash
+  python train.py --config configs/pandaset.yaml --dataset-root datasets/pandaset/pandaset
   ```
 
 ### Lightweight validation
@@ -34,6 +40,21 @@
 - Smallest practical single-check command in this bundle:
   ```bash
   python scripts/lidar_smoke_test.py --config configs/waymo.yaml
+  ```
+
+- Minimal training smoke validated after the `--dataset-root` change:
+  ```bash
+  PYTHONPATH=src:submodules/gsplat_upstream_clean python3 - <<'PY'
+  from three_dgut_gsplat_min import JointTrainer, load_config
+  cfg = load_config('configs/pandaset.yaml', dataset_root='datasets/pandaset/pandaset')
+  cfg.training.max_steps = 1
+  cfg.training.log_every = 1
+  cfg.training.save_every = 1
+  cfg.training.checkpoint_dir = 'checkpoints_pandaset_smoke_cli'
+  cfg.training.vis_dir = 'checkpoints_pandaset_smoke_cli/vis'
+  trainer = JointTrainer(cfg)
+  trainer.train()
+  PY
   ```
 
 ### Packaging / dependency context
