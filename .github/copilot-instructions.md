@@ -40,6 +40,7 @@
 
 - The local Python package metadata is in `submodules/gsplat_upstream_clean/pyproject.toml`.
 - Vendored `gsplat` also has its own `setup.py`; importing it may trigger CUDA extension builds/rebuilds.
+- `pandaset` is expected to be installed outside the repo (for example: `pip install /path/to/pandaset-devkit/python`). Do not vendor or submodule PandaSet devkit inside this repository.
 
 ## High-level architecture
 

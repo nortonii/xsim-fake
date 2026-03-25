@@ -1,8 +1,4 @@
 [submodule "submodules/gsplat_upstream_clean"]
-	path = submodules/gsplat_upstream_clean
-	url = git@github.com:nortonii/xsim-fake-gsplat.git
-	branch = main
-[submodule "submodules/pandaset-devkit"]
-	path = submodules/pandaset-devkit
-	url = https://github.com/scaleapi/pandaset-devkit.git
-	branch = master
+path = submodules/gsplat_upstream_clean
+url = git@github.com:nortonii/xsim-fake-gsplat.git
+branch = main
