@@ -1,0 +1,56 @@
+dataset:
+  mode: waymo
+  source_path: /root/open_dataset/waymo
+  waymo_scene_id: "002"
+  cam_id: "0"
+  start_index: 0
+  segment_length: 40
+  lidar_width: 2048
+  lidar_height: 64
+  max_range: 80.0
+  near_plane: 0.1
+  far_plane: 120.0
+  lidar_sensor: waymo
+  lidar_angle_mode: fixed
+  lidar_vertical_fov_min_deg: -17.6
+  lidar_vertical_fov_max_deg: 2.4
+  lidar_render_backend: spherical_proxy_ut
+  lidar_depth_aggregation: mean
+
+model:
+  num_gaussians: 120000
+  use_separate_opacity: false
+  init_from_lidar: true
+  init_lidar_frames: 8
+  init_scale: 0.03
+  densify:
+    enable: false
+
+optimizer:
+  lr_mean: 0.00016
+  lr_color: 0.0025
+  lr_opacity: 0.05
+  lr_scale: 0.005
+  lr_rotation: 0.001
+
+loss:
+  rgb_l1_weight: 1.0
+  rgb_ssim_lambda: 0.2
+  lidar_depth_weight: 1.0
+  lidar_loss_type: smooth_l1
+  lidar_loss_sampling: uniform
+  scale_reg_weight: 0.1
+
+training:
+  max_steps: 10000
+  log_every: 1
+  save_every: 500
+  checkpoint_dir: checkpoints_waymo_smoke_v2
+  device: cuda
+  train_split_ratio: 0.8
+  split_seed: 0
+  eval_compute_rgb_psnr: false
+  eval_compute_lidar_rmse: false
+  eval_compute_lidar_pearson: false
+  vis_every: 200
+  vis_dir: checkpoints_waymo_smoke_v2/vis

@@ -1,0 +1,57 @@
+dataset:
+  mode: kitti_r
+  source_path: /mnt/data16/xuzhiy/RobustCalibration/kitti-calibration/kitti-calibration
+  data_seq: "3"
+  cam_id: "02"
+  segment_length: 50
+  lidar_width: 2048
+  lidar_height: 128
+  max_range: 50.0
+  lidar_vertical_fov_min_deg: -24.0
+  lidar_vertical_fov_max_deg: 4.0
+  lidar_angle_mode: fixed
+  lidar_render_backend: spherical_proxy_ut
+  lidar_depth_aggregation: mean
+
+model:
+  num_gaussians: 500000
+  use_separate_opacity: false
+  init_from_lidar: true
+  init_lidar_frames: 20
+  init_scale: 0.03
+  densify:
+    enable: true
+    strategy: mcmc
+    refine_start_iter: 500
+    refine_every: 200
+    refine_stop_iter: 15000
+    reset_every: 3000
+
+optimizer:
+  lr_mean: 0.00016
+  lr_color: 0.0025
+  lr_opacity: 0.05
+  lr_scale: 0.005
+  lr_rotation: 0.001
+
+loss:
+  rgb_l1_weight: 1.0
+  rgb_ssim_lambda: 0.2
+  lidar_depth_weight: 1.0
+  lidar_loss_type: pearson
+  lidar_loss_sampling: uniform
+  scale_reg_weight: 0.1
+
+training:
+  max_steps: 10000
+  log_every: 20
+  save_every: 1000
+  checkpoint_dir: checkpoints_joint_proxy_kitti_hr_h128
+  device: cuda
+  train_split_ratio: 0.8
+  split_seed: 0
+  eval_compute_rgb_psnr: true
+  eval_compute_lidar_rmse: true
+  eval_compute_lidar_pearson: true
+  vis_every: 200
+  vis_dir: checkpoints_joint_proxy_kitti_hr_h128/vis
