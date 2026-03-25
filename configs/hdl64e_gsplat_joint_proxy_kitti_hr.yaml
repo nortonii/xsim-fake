@@ -1,6 +1,6 @@
 dataset:
   mode: kitti_r
-  source_path: /mnt/data16/xuzhiy/RobustCalibration/kitti-calibration/kitti-calibration
+  source_path: null  # pass via --dataset-root
   data_seq: "3"
   cam_id: "02"
   segment_length: 50

@@ -1,6 +1,6 @@
 dataset:
   mode: waymo
-  source_path: /root/open_dataset/waymo
+  source_path: null  # pass via --dataset-root
   waymo_scene_id: "002"
   cam_id: "0"
   start_index: 0

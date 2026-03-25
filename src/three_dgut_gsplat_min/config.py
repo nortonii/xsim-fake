@@ -201,11 +201,13 @@ def _construct_dataclass(cls: type[Any], values: dict[str, Any]) -> Any:
     return cls(**values)
 
 
-def load_config(path: str | Path) -> ExperimentConfig:
+def load_config(path: str | Path, dataset_root: str | None = None) -> ExperimentConfig:
     config_path = Path(path)
     raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
     dataset_raw = dict(raw["dataset"])
+    if dataset_root is not None:
+        dataset_raw["source_path"] = dataset_root
     if dataset_raw.get("mode", "manifest") == "manifest" and not dataset_raw.get("manifest_path"):
         raise ValueError("dataset.manifest_path is required when dataset.mode='manifest'.")
     if dataset_raw.get("mode") == "kitti_r":
