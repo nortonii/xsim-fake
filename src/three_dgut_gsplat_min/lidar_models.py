@@ -68,6 +68,28 @@ PANDAR128_ELEV_END_DEG = math.degrees(-0.41325906)
 PANDAR128_AZ_START_DEG = math.degrees(3.0847472798897)
 PANDAR128_AZ_END_DEG = math.degrees(-3.196692698037892)
 
+# PandaSet / Pandar64 distribution from the devkit tutorial CSV.
+PANDAR64_VERT_DEG = [
+    14.87, 11.02, 8.047, 5.045, 3.028, 2.016, 1.848, 1.676,
+    1.51, 1.339, 1.172, 1.001, 0.834, 0.663, 0.496, 0.325,
+    0.157, -0.012, -0.181, -0.349, -0.52, -0.687, -0.857, -1.025,
+    -1.196, -1.363, -1.534, -1.7, -1.872, -2.04, -2.21, -2.377,
+    -2.548, -2.712, -2.885, -3.052, -3.222, -3.387, -3.56, -3.724,
+    -3.896, -4.062, -4.233, -4.397, -4.57, -4.732, -4.904, -5.069,
+    -5.241, -5.403, -5.577, -5.738, -5.91, -6.073, -7.075, -8.071,
+    -9.072, -9.897, -11.044, -12.018, -12.986, -13.942, -18.901, -24.909,
+]
+PANDAR64_ROT_DEG = [
+    -1.042, -1.042, -1.042, -1.042, -1.042, -1.042, 1.042, 3.125,
+    5.208, -5.208, -3.125, -1.042, 1.042, 3.125, 5.208, -5.208,
+    -3.125, -1.042, 1.042, 3.125, 5.208, -5.208, -3.125, -1.042,
+    1.042, 3.125, 5.208, -5.208, -3.125, -1.042, 1.042, 3.125,
+    5.208, -5.208, -3.125, -1.042, 1.042, 3.125, 5.208, -5.208,
+    -3.125, -1.042, 1.042, 3.125, 5.208, -5.208, -3.125, -1.042,
+    1.042, 3.125, 5.208, -5.208, -3.125, -1.042, -1.042, -1.042,
+    -1.042, -1.042, -1.042, -1.042, -1.042, -1.042, -1.042, -1.042,
+]
+
 
 def _parse_dbxml(dbxml_path: str | Path) -> tuple[list[float], list[float]]:
     path = Path(dbxml_path)
@@ -174,6 +196,11 @@ def build_gsplat_lidar_coeffs(
                     f"pandar128 expects lidar_width={PANDAR128_COLS} and lidar_height={PANDAR128_ROWS}, "
                     f"got {width}x{height}"
                 )
+        elif sensor == "pandar64":
+            row_elevations_deg = PANDAR64_VERT_DEG
+            row_azimuth_offsets_deg = PANDAR64_ROT_DEG
+            if int(height) != 64:
+                raise ValueError(f"pandar64 expects lidar_height=64, got {height}")
         else:
             raise ValueError(
                 "lidar_row_elevations_deg is required for custom sensors."

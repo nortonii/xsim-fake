@@ -12,7 +12,7 @@ dataset:
   near_plane: 0.1
   far_plane: 120.0
   lidar_sensor: pandar64
-  lidar_angle_mode: fitted
+  lidar_angle_mode: fixed
   lidar_vertical_fov_min_deg: -25.0
   lidar_vertical_fov_max_deg: 20.0
   lidar_render_backend: spherical_proxy_ut

@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .data import FrameSample, KittiRDataset
+from .lidar_models import PANDAR64_VERT_DEG
 
 
 class PandaSetDataset(Dataset[FrameSample]):
@@ -108,7 +109,10 @@ class PandaSetDataset(Dataset[FrameSample]):
         self._camera_pose_mats = [self._pose_dict_to_matrix(p) for p in self._camera.poses[:n_frames]]
         self._reference_inv = np.linalg.inv(self._lidar_pose_mats[self.start_index])
 
-        if self.lidar_angle_mode.strip().lower() == "fitted":
+        angle_mode = self.lidar_angle_mode.strip().lower()
+        if angle_mode == "fixed" and self.lidar_vertical_angles_deg is None:
+            self.lidar_vertical_angles_deg = list(PANDAR64_VERT_DEG)
+        elif angle_mode == "fitted":
             self.lidar_vertical_angles_deg = self._estimate_vertical_angles(
                 frames=min(20, self.segment_length),
                 min_range=max(self.near_plane, 2.0),
