@@ -99,6 +99,7 @@ class JointTrainer:
                 lidar_vertical_fov_min_deg=config.dataset.lidar_vertical_fov_min_deg,
                 lidar_vertical_fov_max_deg=config.dataset.lidar_vertical_fov_max_deg,
                 lidar_vertical_angles_deg=config.dataset.lidar_vertical_angles_deg,
+                lidar_row_azimuth_offsets_deg=config.dataset.lidar_row_azimuth_offsets_deg,
                 lidar_vertical_angle_offset_deg=config.dataset.lidar_vertical_angle_offset_deg,
                 lidar_angle_mode=config.dataset.lidar_angle_mode,
             )
@@ -110,6 +111,9 @@ class JointTrainer:
         fitted_angles = getattr(self.dataset, "lidar_vertical_angles_deg", None)
         if fitted_angles is not None and len(fitted_angles) > 0:
             self.config.dataset.lidar_vertical_angles_deg = list(fitted_angles)
+        fitted_azimuth_offsets = getattr(self.dataset, "lidar_row_azimuth_offsets_deg", None)
+        if fitted_azimuth_offsets is not None and len(fitted_azimuth_offsets) > 0:
+            self.config.dataset.lidar_row_azimuth_offsets_deg = list(fitted_azimuth_offsets)
 
         # Train/test split (deterministic)
         n_total = len(self.dataset)
@@ -1212,11 +1216,28 @@ class JointTrainer:
         u = u[inb].cpu().numpy()
         v = v[inb].cpu().numpy()
 
-        # Draw 1px points
+        # Draw a small dilated halo so sparse LiDAR points are easier to see in RGB overlays.
+        mask = np.zeros((H, W), dtype=bool)
+        mask[v, u] = True
+        halo = np.zeros_like(mask)
+        radius = 2
+        for dy in range(-radius, radius + 1):
+            src_y0 = max(0, -dy)
+            src_y1 = H - max(0, dy)
+            dst_y0 = max(0, dy)
+            dst_y1 = H - max(0, -dy)
+            for dx in range(-radius, radius + 1):
+                src_x0 = max(0, -dx)
+                src_x1 = W - max(0, dx)
+                dst_x0 = max(0, dx)
+                dst_x1 = W - max(0, -dx)
+                halo[dst_y0:dst_y1, dst_x0:dst_x1] |= mask[src_y0:src_y1, src_x0:src_x1]
+
         r, g, b = color
-        img[v, u, 0] = r
-        img[v, u, 1] = g
-        img[v, u, 2] = b
+        red = np.array([r, g, b], dtype=np.float32)
+        img_f = img.astype(np.float32)
+        img_f[halo] = 0.25 * img_f[halo] + 0.75 * red
+        img = np.clip(img_f, 0.0, 255.0).round().astype(np.uint8)
         return img
 
     @staticmethod

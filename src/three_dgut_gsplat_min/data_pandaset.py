@@ -7,7 +7,8 @@ import torch
 from torch.utils.data import Dataset
 
 from .data import FrameSample, KittiRDataset
-from .lidar_models import PANDAR64_VERT_DEG
+from .lidar_models import PANDAR64_ROT_DEG, PANDAR64_VERT_DEG
+from .lidar_projection import points_to_angle_table_depth
 
 
 class PandaSetDataset(Dataset[FrameSample]):
@@ -29,6 +30,7 @@ class PandaSetDataset(Dataset[FrameSample]):
         lidar_vertical_fov_min_deg: float = -25.0,
         lidar_vertical_fov_max_deg: float = 20.0,
         lidar_vertical_angles_deg: list[float] | None = None,
+        lidar_row_azimuth_offsets_deg: list[float] | None = None,
         lidar_vertical_angle_offset_deg: float = 0.0,
         lidar_angle_mode: str = "fitted",
     ) -> None:
@@ -53,6 +55,7 @@ class PandaSetDataset(Dataset[FrameSample]):
         self.lidar_vertical_fov_min_deg = float(lidar_vertical_fov_min_deg)
         self.lidar_vertical_fov_max_deg = float(lidar_vertical_fov_max_deg)
         self.lidar_vertical_angles_deg = lidar_vertical_angles_deg
+        self.lidar_row_azimuth_offsets_deg = lidar_row_azimuth_offsets_deg
         self.lidar_vertical_angle_offset_deg = float(lidar_vertical_angle_offset_deg)
         self.lidar_angle_mode = str(lidar_angle_mode)
         self.scene_name = f"pandaset_{self.sequence_id}_{self.camera_name}"
@@ -112,12 +115,16 @@ class PandaSetDataset(Dataset[FrameSample]):
         angle_mode = self.lidar_angle_mode.strip().lower()
         if angle_mode == "fixed" and self.lidar_vertical_angles_deg is None:
             self.lidar_vertical_angles_deg = list(PANDAR64_VERT_DEG)
+        if angle_mode == "fixed" and self.lidar_row_azimuth_offsets_deg is None:
+            self.lidar_row_azimuth_offsets_deg = list(PANDAR64_ROT_DEG)
         elif angle_mode == "fitted":
             self.lidar_vertical_angles_deg = self._estimate_vertical_angles(
                 frames=min(20, self.segment_length),
                 min_range=max(self.near_plane, 2.0),
                 far_plane=self.far_plane,
             )
+        if self.lidar_row_azimuth_offsets_deg is None and self.lidar_vertical_angles_deg is not None:
+            self.lidar_row_azimuth_offsets_deg = [0.0] * len(self.lidar_vertical_angles_deg)
         self._apply_vertical_angle_offset()
 
     def __len__(self) -> int:
@@ -134,7 +141,7 @@ class PandaSetDataset(Dataset[FrameSample]):
         points_lidar = self._filter_points(points_lidar)
         lidar_points = torch.from_numpy(points_lidar.astype(np.float32))
 
-        lidar_depth = KittiRDataset._points_to_lidar_depth(
+        lidar_depth = points_to_angle_table_depth(
             points_lidar=points_lidar,
             width=self.lidar_width,
             height=self.lidar_height,
@@ -143,6 +150,7 @@ class PandaSetDataset(Dataset[FrameSample]):
             vertical_fov_min_deg=self.lidar_vertical_fov_min_deg,
             vertical_fov_max_deg=self.lidar_vertical_fov_max_deg,
             vertical_angles_deg=self.lidar_vertical_angles_deg,
+            row_azimuth_offsets_deg=self.lidar_row_azimuth_offsets_deg,
         )
 
         lidar_to_world = torch.tensor(self._reference_inv @ self._lidar_pose_mats[frame_idx], dtype=torch.float32)

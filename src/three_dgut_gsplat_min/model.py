@@ -21,6 +21,7 @@ except Exception:  # pragma: no cover
     quat_scale_to_covar_preci = None
 
 from .lidar_projection import elevation_to_row
+from .lidar_projection import elevation_to_row_value
 from .lidar_models import build_gsplat_lidar_coeffs
 from .lidar_resample import warp_depth_to_vertical_angles
 
@@ -269,6 +270,9 @@ class GaussianSceneModel(nn.Module):
         scales = torch.exp(self.scales).clamp_min(1.0e-6)
         opacity = self.get_lidar_opacity()
         target_vertical_angles_deg = vertical_angles_deg or lidar_vertical_angles_deg
+        row_azimuth_offsets_deg = None
+        if self._lidar_render_config is not None:
+            row_azimuth_offsets_deg = getattr(self._lidar_render_config, "lidar_row_azimuth_offsets_deg", None)
         if self._lidar_render_backend == "gsplat_ut":
             depth_map, alpha_map = self._render_lidar_gsplat_ut(
                 means=means,
@@ -301,6 +305,8 @@ class GaussianSceneModel(nn.Module):
                 height=height,
                 vertical_fov_min_deg=vertical_fov_min_deg,
                 vertical_fov_max_deg=vertical_fov_max_deg,
+                vertical_angles_deg=target_vertical_angles_deg,
+                row_azimuth_offsets_deg=row_azimuth_offsets_deg,
                 near_plane=near_plane,
                 far_plane=far_plane,
             )
@@ -341,6 +347,8 @@ class GaussianSceneModel(nn.Module):
                 height=height,
                 vertical_fov_min_deg=vertical_fov_min_deg,
                 vertical_fov_max_deg=vertical_fov_max_deg,
+                vertical_angles_deg=target_vertical_angles_deg,
+                row_azimuth_offsets_deg=row_azimuth_offsets_deg,
                 near_plane=near_plane,
                 far_plane=far_plane,
             )
@@ -379,7 +387,8 @@ class GaussianSceneModel(nn.Module):
             height=height,
             vertical_fov_min_deg=vertical_fov_min_deg,
             vertical_fov_max_deg=vertical_fov_max_deg,
-            vertical_angles_deg=None,
+            vertical_angles_deg=target_vertical_angles_deg,
+            row_azimuth_offsets_deg=row_azimuth_offsets_deg,
             near_plane=near_plane,
             far_plane=far_plane,
         )
@@ -431,6 +440,8 @@ class GaussianSceneModel(nn.Module):
         height: int,
         vertical_fov_min_deg: float,
         vertical_fov_max_deg: float,
+        vertical_angles_deg: list[float] | None,
+        row_azimuth_offsets_deg: list[float] | None,
         near_plane: float,
         far_plane: float,
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -460,8 +471,17 @@ class GaussianSceneModel(nn.Module):
         span = max(max_el - min_el, eps)
         valid = (r >= float(near_plane)) & (r <= float(far_plane)) & (el >= min_el) & (el <= max_el)
 
+        az_offsets_deg = elevation_to_row_value(el, vertical_angles_deg, row_azimuth_offsets_deg)
+        az = az - torch.deg2rad(az_offsets_deg)
+        az = torch.remainder(az + math.pi, 2.0 * math.pi) - math.pi
         u = (az + math.pi) / (2.0 * math.pi) * float(width)
-        v = (max_el - el) / span * float(max(height - 1, 1))
+        v = elevation_to_row(
+            elevation=el,
+            height=height,
+            vertical_fov_min_deg=vertical_fov_min_deg,
+            vertical_fov_max_deg=vertical_fov_max_deg,
+            vertical_angles_deg=vertical_angles_deg,
+        )
         means2d = torch.stack([u, v], dim=-1).unsqueeze(0)
         # Virtual 3DGS center in the LiDAR-proxy camera coordinate frame.
         # The mean/median branches use the same proxy geometry; only the
@@ -632,6 +652,8 @@ class GaussianSceneModel(nn.Module):
         height: int,
         vertical_fov_min_deg: float,
         vertical_fov_max_deg: float,
+        vertical_angles_deg: list[float] | None,
+        row_azimuth_offsets_deg: list[float] | None,
         near_plane: float,
         far_plane: float,
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -668,14 +690,15 @@ class GaussianSceneModel(nn.Module):
             means_l=means_l,
             scales=scales,
             quats=F.normalize(self.quats, dim=-1),
-            width=width,
-            height=height,
-            vertical_fov_min_deg=vertical_fov_min_deg,
-            vertical_fov_max_deg=vertical_fov_max_deg,
-            vertical_angles_deg=None,
-            near_plane=near_plane,
-            far_plane=far_plane,
-        )
+                width=width,
+                height=height,
+                vertical_fov_min_deg=vertical_fov_min_deg,
+                vertical_fov_max_deg=vertical_fov_max_deg,
+                vertical_angles_deg=vertical_angles_deg,
+                row_azimuth_offsets_deg=row_azimuth_offsets_deg,
+                near_plane=near_plane,
+                far_plane=far_plane,
+            )
         valid = valid & valid_mask
 
         cov_uv = 0.5 * (cov_uv + cov_uv.transpose(-1, -2))
@@ -861,6 +884,7 @@ class GaussianSceneModel(nn.Module):
         near_plane: float,
         far_plane: float,
         vertical_angles_deg: list[float] | None = None,
+        row_azimuth_offsets_deg: list[float] | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         if rasterization is None:
             raise ImportError("gsplat is required for gsplat-backed LiDAR rendering.")
@@ -884,6 +908,9 @@ class GaussianSceneModel(nn.Module):
 
         means_p = means_l.clone()
         means_p[~valid] = means_p[~valid] + torch.tensor([0.0, 0.0, 1.0e6], device=device, dtype=dtype)
+        az_offsets_deg = elevation_to_row_value(el, vertical_angles_deg, row_azimuth_offsets_deg)
+        az = az - torch.deg2rad(az_offsets_deg)
+        az = torch.remainder(az + math.pi, 2.0 * math.pi) - math.pi
         u = (az + math.pi) / (2.0 * math.pi) * float(width)
         v = elevation_to_row(
             elevation=el,
@@ -997,6 +1024,7 @@ class GaussianSceneModel(nn.Module):
         vertical_fov_min_deg: float,
         vertical_fov_max_deg: float,
         vertical_angles_deg: list[float] | None,
+        row_azimuth_offsets_deg: list[float] | None,
         near_plane: float,
         far_plane: float,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
@@ -1051,6 +1079,9 @@ class GaussianSceneModel(nn.Module):
         d = (d + math.pi) % (2.0 * math.pi) - math.pi
         az = az0 + d
 
+        az_offsets_deg = elevation_to_row_value(el, vertical_angles_deg, row_azimuth_offsets_deg)
+        az = az - torch.deg2rad(az_offsets_deg)
+        az = torch.remainder(az + math.pi, 2.0 * math.pi) - math.pi
         u = (az + math.pi) / (2.0 * math.pi) * float(width)
         v = elevation_to_row(
             elevation=el,

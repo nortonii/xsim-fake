@@ -58,6 +58,7 @@ class DatasetConfig:
     # Spherical splat kernel radius in pixels (used when mode="gaussian").
     lidar_spherical_kernel_radius: int = 1
     lidar_row_elevations_deg: list[float] | None = None
+    lidar_row_azimuth_offsets_deg: list[float] | None = None
     lidar_spinning_frequency_hz: float = 10.0
     lidar_spinning_direction: str = "clockwise"  # "clockwise" or "counterclockwise"
     lidar_column_azimuth_start_deg: float = 180.0

@@ -1,6 +1,6 @@
 dataset:
   mode: pandaset
-  source_path: null  # pass via --dataset-root
+  source_path: datasets/pandaset/pandaset
   pandaset_sequence_id: "001"
   pandaset_camera_name: front_camera
   pandaset_lidar_sensor_id: 0
