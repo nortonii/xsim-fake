@@ -11,7 +11,7 @@
   This runs `train.py` with `configs/hdl64e_gsplat_joint_proxy_kitti_interp.yaml` and sets:
   ```bash
   TORCH_EXTENSIONS_DIR=/tmp/torch_extensions
-  PYTHONPATH=src:third_party/gsplat_upstream_clean
+  PYTHONPATH=src:submodules/gsplat_upstream_clean
   ```
 
 - Direct training command:
@@ -38,12 +38,12 @@
 
 ### Packaging / dependency context
 
-- The local Python package metadata is in `third_party/gsplat_upstream_clean/pyproject.toml`.
+- The local Python package metadata is in `submodules/gsplat_upstream_clean/pyproject.toml`.
 - Vendored `gsplat` also has its own `setup.py`; importing it may trigger CUDA extension builds/rebuilds.
 
 ## High-level architecture
 
-This repository is a slim training bundle focused on the current `spherical_proxy` / `spherical_proxy_ut` LiDAR path. The active local code is under `src/three_dgut_gsplat_min`; `third_party/gsplat_upstream_clean` is vendored upstream rendering infrastructure.
+This repository is a slim training bundle focused on the current `spherical_proxy` / `spherical_proxy_ut` LiDAR path. The active local code is under `src/three_dgut_gsplat_min`; `submodules/gsplat_upstream_clean` is vendored upstream rendering infrastructure.
 
 The top-level runtime flow is:
 

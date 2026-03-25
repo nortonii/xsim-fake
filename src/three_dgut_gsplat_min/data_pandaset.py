@@ -36,7 +36,7 @@ class PandaSetDataset(Dataset[FrameSample]):
         except Exception as exc:  # pragma: no cover
             raise ImportError(
                 "PandaSetDataset requires the 'pandaset' package. "
-                "Install it from third_party/pandaset-devkit/python first."
+                "Install it from submodules/pandaset-devkit/python first."
             ) from exc
 
         self.source_root = self._resolve_source_root(Path(source_path))

@@ -9,8 +9,8 @@ Included:
 - `configs/hdl64e_gsplat_joint_proxy.yaml`
 - `scripts/lidar_smoke_test.py`
 - `src/three_dgut_gsplat_min/`
-- `third_party/gsplat_upstream_clean/gsplat/`
-- `third_party/gsplat_upstream_clean/{setup.py,pyproject.toml,MANIFEST.in,LICENSE,README.md}`
+- `submodules/gsplat_upstream_clean/gsplat/`
+- `submodules/gsplat_upstream_clean/{setup.py,pyproject.toml,MANIFEST.in,LICENSE,README.md}`
 
 Excluded on purpose:
 - any `checkpoints*` directories

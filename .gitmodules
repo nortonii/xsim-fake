@@ -1,4 +1,4 @@
-[submodule "third_party/gsplat_upstream_clean"]
-	path = third_party/gsplat_upstream_clean
+[submodule "submodules/gsplat_upstream_clean"]
+	path = submodules/gsplat_upstream_clean
 	url = git@github-xsim-fake:nortonii/xsim-fake-gsplat.git
 	branch = main
