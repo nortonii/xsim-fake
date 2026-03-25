@@ -15,3 +15,5 @@ checkpoints*/
 *.ckpt
 *.npz
 *.npy
+*.yaml
+*.yml
