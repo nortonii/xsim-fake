@@ -11,7 +11,7 @@ from .config import ExperimentConfig
 from .data import KittiRDataset, MultiSensorDataset, multi_sensor_collate_fn
 from .data_pandaset import PandaSetDataset
 from .data_waymo import WaymoDataset
-from .lidar_models import HDL64E_VERT_DEG, WAYMO_TOP_ROWS, WAYMO_TOP_VERT_DEG
+from .lidar_models import HDL64E_VERT_DEG, PANDAR64_ROT_DEG, PANDAR64_VERT_DEG, WAYMO_TOP_ROWS, WAYMO_TOP_VERT_DEG
 from .losses import JointLoss
 from .model import GaussianSceneModel
 
@@ -388,6 +388,9 @@ class JointTrainer:
                 base_angles = list(WAYMO_TOP_VERT_DEG)
             elif sensor == "hdl64e" and dataset_mode == "kitti_r":
                 base_angles = list(HDL64E_VERT_DEG)
+            elif sensor == "pandar64" and dataset_mode == "pandaset":
+                base_angles = list(PANDAR64_VERT_DEG)
+                config.dataset.lidar_row_azimuth_offsets_deg = list(PANDAR64_ROT_DEG)
             else:
                 lo = float(config.dataset.lidar_vertical_fov_max_deg)
                 hi = float(config.dataset.lidar_vertical_fov_min_deg)

@@ -270,16 +270,18 @@ class GaussianSceneModel(nn.Module):
         scales = torch.exp(self.scales).clamp_min(1.0e-6)
         opacity = self.get_lidar_opacity()
         target_vertical_angles_deg = vertical_angles_deg or lidar_vertical_angles_deg
+        render_vertical_angles_deg = target_vertical_angles_deg
         row_azimuth_offsets_deg = None
         apply_vertical_warp = bool(target_vertical_angles_deg)
         if self._lidar_render_config is not None:
             row_azimuth_offsets_deg = getattr(self._lidar_render_config, "lidar_row_azimuth_offsets_deg", None)
             dataset_mode = str(getattr(self._lidar_render_config, "mode", "") or "").strip().lower()
             if dataset_mode == "kitti_r":
-                # KITTI_R uses the target angle table inside the projection itself.
-                # Do not apply a second post-warp/resample step.
+                # KITTI_R should render on a uniform vertical grid first and only
+                # then resample to the target angle table for supervision.
                 row_azimuth_offsets_deg = None
-                apply_vertical_warp = False
+                render_vertical_angles_deg = None
+                apply_vertical_warp = True
         if self._lidar_render_backend == "gsplat_ut":
             depth_map, alpha_map = self._render_lidar_gsplat_ut(
                 means=means,
@@ -312,7 +314,7 @@ class GaussianSceneModel(nn.Module):
                 height=height,
                 vertical_fov_min_deg=vertical_fov_min_deg,
                 vertical_fov_max_deg=vertical_fov_max_deg,
-                vertical_angles_deg=target_vertical_angles_deg,
+                vertical_angles_deg=render_vertical_angles_deg,
                 row_azimuth_offsets_deg=row_azimuth_offsets_deg,
                 near_plane=near_plane,
                 far_plane=far_plane,
@@ -354,7 +356,7 @@ class GaussianSceneModel(nn.Module):
                 height=height,
                 vertical_fov_min_deg=vertical_fov_min_deg,
                 vertical_fov_max_deg=vertical_fov_max_deg,
-                vertical_angles_deg=target_vertical_angles_deg,
+                vertical_angles_deg=render_vertical_angles_deg,
                 row_azimuth_offsets_deg=row_azimuth_offsets_deg,
                 near_plane=near_plane,
                 far_plane=far_plane,
@@ -394,7 +396,7 @@ class GaussianSceneModel(nn.Module):
             height=height,
             vertical_fov_min_deg=vertical_fov_min_deg,
             vertical_fov_max_deg=vertical_fov_max_deg,
-            vertical_angles_deg=target_vertical_angles_deg,
+            vertical_angles_deg=render_vertical_angles_deg,
             row_azimuth_offsets_deg=row_azimuth_offsets_deg,
             near_plane=near_plane,
             far_plane=far_plane,

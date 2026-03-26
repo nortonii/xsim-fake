@@ -4,7 +4,7 @@ set -euo pipefail
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 export TORCH_EXTENSIONS_DIR="${TORCH_EXTENSIONS_DIR:-/tmp/torch_extensions}"
 export PYTHONPATH="${PYTHONPATH:-src:submodules/gsplat_upstream_clean}"
-CONFIG_PATH="${CONFIG_PATH:-configs/hdl64e_gsplat_joint_proxy_kitti_interp.yaml}"
+CONFIG_PATH="${CONFIG_PATH:-configs/hdl64e_gsplat_joint_proxy_kitti_interp_smoothl1.yaml}"
 DATASET_ROOT="${DATASET_ROOT:-}"
 if [[ $# -gt 0 ]]; then
   DATASET_ROOT="$1"
