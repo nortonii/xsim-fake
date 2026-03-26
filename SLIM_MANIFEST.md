@@ -1,7 +1,7 @@
 # Xsim_min Slim Bundle
 
-This bundle keeps only the current `spherical_proxy` training path and the minimum
-files needed to run it.
+This bundle keeps only the current training code and expects `gsplat` to be
+available outside the repo at `GSPLAT_ROOT`.
 
 Included:
 - `train.py`
@@ -10,8 +10,8 @@ Included:
 - `configs/pandaset.yaml`
 - `scripts/lidar_smoke_test.py`
 - `src/three_dgut_gsplat_min/`
-- `submodules/gsplat_upstream_clean/gsplat/`
-- `submodules/gsplat_upstream_clean/{setup.py,pyproject.toml,MANIFEST.in,LICENSE,README.md}`
+- `/mnt/data16/xuzhiy/gsplat_upstream_clean/gsplat/`
+- `/mnt/data16/xuzhiy/gsplat_upstream_clean/{setup.py,pyproject.toml,MANIFEST.in,LICENSE,README.md}`
 
 Excluded on purpose:
 - any `checkpoints*` directories
@@ -19,7 +19,8 @@ Excluded on purpose:
 - debug / analysis scripts not needed for the current render path
 - gsplat docs, examples, tests, and other non-runtime bulk removed after copy
 
-Current active LiDAR render backend in this bundle:
+Current active LiDAR render backends in this repo:
+- `spherical_proxy_ut`
 - `spherical_proxy`
 
 Dataset roots are no longer hardcoded in the YAML configs. Pass them at runtime with:
@@ -37,7 +38,7 @@ bash run_joint_proxy_train.sh /path/to/kitti-root
 Minimal smoke command validated in this repo:
 
 ```bash
-PYTHONPATH=src:submodules/gsplat_upstream_clean python3 - <<'PY'
+PYTHONPATH=src:/mnt/data16/xuzhiy/gsplat_upstream_clean python3 - <<'PY'
 from three_dgut_gsplat_min import JointTrainer, load_config
 cfg = load_config('configs/pandaset.yaml', dataset_root='datasets/pandaset/pandaset')
 cfg.training.max_steps = 1

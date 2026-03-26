@@ -1,12 +1,13 @@
 ﻿from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 SRC_ROOT = PROJECT_ROOT / "src"
-GSPLAT_ROOT = PROJECT_ROOT / "submodules" / "gsplat_upstream_clean"
+GSPLAT_ROOT = Path(os.environ.get("GSPLAT_ROOT", "/mnt/data16/xuzhiy/gsplat_upstream_clean")).expanduser()
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 if str(GSPLAT_ROOT) not in sys.path:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+import os
 from pathlib import Path
 import sys
 
@@ -9,7 +10,7 @@ import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
-GSPLAT_ROOT = PROJECT_ROOT / "third_party" / "gsplat_upstream_clean"
+GSPLAT_ROOT = Path(os.environ.get("GSPLAT_ROOT", "/mnt/data16/xuzhiy/gsplat_upstream_clean")).expanduser()
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 if str(GSPLAT_ROOT) not in sys.path:
