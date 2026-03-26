@@ -20,6 +20,10 @@ class FrameSample:
     lidar_depth: torch.Tensor
     # Optional raw LiDAR points in LiDAR frame, shape [N,3]
     lidar_points: torch.Tensor | None = None
+    # Optional per-point timestamps or relative sweep times, shape [N]
+    lidar_point_timestamps: torch.Tensor | None = None
+    # Optional per-point ring ids, shape [N]
+    lidar_point_ring_ids: torch.Tensor | None = None
     camera_to_world: torch.Tensor = None  # type: ignore[assignment]
     lidar_to_world: torch.Tensor = None  # type: ignore[assignment]
     intrinsics: torch.Tensor = None  # type: ignore[assignment]
@@ -28,6 +32,8 @@ class FrameSample:
     lidar_width: int = 0
     lidar_height: int = 0
     frame_id: str = ""
+    # Optional frame-level timestamp for the synchronized sweep/camera sample.
+    frame_timestamp: float | None = None
     # Dynamic mask: 0=static, >0=dynamic. Used to filter dynamic regions in loss.
     dynamic_mask: torch.Tensor | None = None
 
@@ -69,6 +75,8 @@ class MultiSensorDataset(Dataset[FrameSample]):
             rgb=rgb,
             lidar_depth=lidar_depth,
             lidar_points=None,
+            lidar_point_timestamps=None,
+            lidar_point_ring_ids=None,
             camera_to_world=camera_to_world,
             lidar_to_world=lidar_to_world,
             intrinsics=intrinsics,
@@ -77,6 +85,7 @@ class MultiSensorDataset(Dataset[FrameSample]):
             lidar_width=lidar_width,
             lidar_height=lidar_height,
             frame_id=metadata.get("frame_id", meta_path.stem),
+            frame_timestamp=metadata.get("frame_timestamp", None),
         )
 
     def _resolve_path(self, path: Path) -> Path:
@@ -271,6 +280,8 @@ class KittiRDataset(Dataset[FrameSample]):
             rgb=rgb,
             lidar_depth=lidar_depth,
             lidar_points=lidar_points,
+            lidar_point_timestamps=None,
+            lidar_point_ring_ids=None,
             camera_to_world=camera_to_world,
             lidar_to_world=lidar_to_world,
             intrinsics=intrinsics,
@@ -279,6 +290,7 @@ class KittiRDataset(Dataset[FrameSample]):
             lidar_width=self.lidar_width,
             lidar_height=self.lidar_height,
             frame_id=f"{self.scene_name}_{local_id:02d}",
+            frame_timestamp=None,
         )
 
     @staticmethod
@@ -558,6 +570,12 @@ def multi_sensor_collate_fn(batch: list[FrameSample]) -> dict[str, Any]:
     }
     if sample.lidar_points is not None:
         out["lidar_points"] = sample.lidar_points
+    if sample.lidar_point_timestamps is not None:
+        out["lidar_point_timestamps"] = sample.lidar_point_timestamps
+    if sample.lidar_point_ring_ids is not None:
+        out["lidar_point_ring_ids"] = sample.lidar_point_ring_ids
+    if sample.frame_timestamp is not None:
+        out["frame_timestamp"] = sample.frame_timestamp
     if sample.dynamic_mask is not None:
         out["dynamic_mask"] = sample.dynamic_mask
     return out

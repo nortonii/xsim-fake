@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 
 from .data import FrameSample, KittiRDataset
 from .lidar_models import PANDAR64_ROT_DEG, PANDAR64_VERT_DEG
-from .lidar_projection import points_to_angle_table_depth
+from .lidar_projection import assign_ring_and_beam_ids
 
 
 class PandaSetDataset(Dataset[FrameSample]):
@@ -136,12 +136,15 @@ class PandaSetDataset(Dataset[FrameSample]):
         image = self._camera[frame_idx].convert("RGB")
         rgb = torch.from_numpy(np.asarray(image, dtype=np.uint8).copy()).permute(2, 0, 1).to(dtype=torch.float32) / 255.0
 
-        points_world = self._lidar[frame_idx][["x", "y", "z"]].to_numpy(dtype=np.float32)
+        lidar_df = self._lidar[frame_idx]
+        points_world = lidar_df[["x", "y", "z"]].to_numpy(dtype=np.float32)
+        point_times = lidar_df["t"].to_numpy(dtype=np.float64) if "t" in lidar_df.columns else None
         points_lidar = self._world_to_sensor(points_world, self._lidar_pose_mats[frame_idx])
-        points_lidar = self._filter_points(points_lidar)
+        points_lidar, point_times = self._filter_points_with_aux(points_lidar, point_times)
+        points_lidar, point_times = self._apply_lidar_fov_mask(points_lidar, point_times)
         lidar_points = torch.from_numpy(points_lidar.astype(np.float32))
 
-        lidar_depth = points_to_angle_table_depth(
+        ring_id, beam_id, ranges, _residual_deg = assign_ring_and_beam_ids(
             points_lidar=points_lidar,
             width=self.lidar_width,
             height=self.lidar_height,
@@ -152,6 +155,27 @@ class PandaSetDataset(Dataset[FrameSample]):
             vertical_angles_deg=self.lidar_vertical_angles_deg,
             row_azimuth_offsets_deg=self.lidar_row_azimuth_offsets_deg,
         )
+        lidar_depth = np.zeros((self.lidar_height, self.lidar_width), dtype=np.float32)
+        if ranges.size > 0:
+            flat_idx = ring_id * int(self.lidar_width) + beam_id
+            order = np.argsort(ranges)
+            flat_idx = flat_idx[order]
+            ranges_sorted = ranges[order]
+            seen = np.zeros(int(self.lidar_height) * int(self.lidar_width), dtype=bool)
+            depth_flat = lidar_depth.reshape(-1)
+            for idx, r in zip(flat_idx, ranges_sorted, strict=False):
+                if not seen[idx]:
+                    depth_flat[idx] = r
+                    seen[idx] = True
+        lidar_depth = torch.from_numpy(lidar_depth).unsqueeze(0)
+
+        frame_timestamp = self._frame_timestamp(frame_idx)
+        lidar_point_timestamps = (
+            torch.from_numpy((point_times - frame_timestamp).astype(np.float32))
+            if point_times is not None and frame_timestamp is not None
+            else None
+        )
+        lidar_point_ring_ids = torch.from_numpy(ring_id.astype(np.int64)) if ring_id.size > 0 else None
 
         lidar_to_world = torch.tensor(self._reference_inv @ self._lidar_pose_mats[frame_idx], dtype=torch.float32)
         camera_to_world = torch.tensor(self._reference_inv @ self._camera_pose_mats[frame_idx], dtype=torch.float32)
@@ -164,6 +188,8 @@ class PandaSetDataset(Dataset[FrameSample]):
             rgb=rgb,
             lidar_depth=lidar_depth,
             lidar_points=lidar_points,
+            lidar_point_timestamps=lidar_point_timestamps,
+            lidar_point_ring_ids=lidar_point_ring_ids,
             camera_to_world=camera_to_world,
             lidar_to_world=lidar_to_world,
             intrinsics=intrinsics,
@@ -172,6 +198,7 @@ class PandaSetDataset(Dataset[FrameSample]):
             lidar_width=self.lidar_width,
             lidar_height=self.lidar_height,
             frame_id=f"{self.sequence_id}_{frame_idx:03d}_{self.camera_name}",
+            frame_timestamp=frame_timestamp,
         )
 
     def _estimate_vertical_angles(
@@ -218,6 +245,61 @@ class PandaSetDataset(Dataset[FrameSample]):
         r = np.linalg.norm(points_lidar, axis=1)
         valid = (r >= self.near_plane) & (r <= self.far_plane) & (r <= self.max_range)
         return points_lidar[valid]
+
+    def _filter_points_with_aux(
+        self,
+        points_lidar: np.ndarray,
+        aux: np.ndarray | None,
+    ) -> tuple[np.ndarray, np.ndarray | None]:
+        if points_lidar.size == 0:
+            empty = points_lidar.reshape(0, 3)
+            if aux is None:
+                return empty, None
+            return empty, aux.reshape(0)
+        r = np.linalg.norm(points_lidar, axis=1)
+        valid = (r >= self.near_plane) & (r <= self.far_plane) & (r <= self.max_range)
+        pts = points_lidar[valid]
+        if aux is None:
+            return pts, None
+        return pts, aux[valid]
+
+    def _apply_lidar_fov_mask(
+        self,
+        points_lidar: np.ndarray,
+        aux: np.ndarray | None,
+    ) -> tuple[np.ndarray, np.ndarray | None]:
+        if points_lidar.size == 0:
+            empty = points_lidar.reshape(0, 3)
+            if aux is None:
+                return empty, None
+            return empty, aux.reshape(0)
+        x = points_lidar[:, 0]
+        y = points_lidar[:, 1]
+        z = points_lidar[:, 2]
+        xy = np.sqrt(x * x + y * y)
+        xy = np.clip(xy, 1.0e-6, None)
+        ranges = np.sqrt(x * x + y * y + z * z)
+        ranges = np.clip(ranges, 1.0e-6, None)
+        elevation = np.arctan2(z, xy)
+        min_el = np.deg2rad(self.lidar_vertical_fov_min_deg)
+        max_el = np.deg2rad(self.lidar_vertical_fov_max_deg)
+        valid = (ranges >= self.near_plane) & (ranges <= self.far_plane) & (ranges <= self.max_range)
+        valid &= (elevation >= min_el) & (elevation <= max_el)
+        pts = points_lidar[valid]
+        if aux is None:
+            return pts, None
+        return pts, aux[valid]
+
+    def _frame_timestamp(self, frame_idx: int) -> float | None:
+        for sensor in (self._camera, self._lidar):
+            timestamps = getattr(sensor, "timestamps", None)
+            if timestamps is None:
+                continue
+            try:
+                return float(timestamps[frame_idx])
+            except Exception:
+                continue
+        return None
 
     @staticmethod
     def _resolve_source_root(source_root: Path) -> Path:
