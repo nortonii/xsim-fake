@@ -10,11 +10,12 @@ import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
-GSPLAT_ROOT = Path(os.environ.get("GSPLAT_ROOT", "/mnt/data16/xuzhiy/gsplat_upstream_clean")).expanduser()
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
-if str(GSPLAT_ROOT) not in sys.path:
-    sys.path.insert(0, str(GSPLAT_ROOT))
+if os.environ.get("XSIM_USE_GSPLAT_SOURCE", "0") == "1":
+    gsplat_root = Path(os.environ.get("GSPLAT_ROOT", "/mnt/data16/xuzhiy/gsplat_upstream_clean")).expanduser()
+    if str(gsplat_root) not in sys.path:
+        sys.path.insert(0, str(gsplat_root))
 
 from three_dgut_gsplat_min.config import load_config
 from three_dgut_gsplat_min.data import KittiRDataset

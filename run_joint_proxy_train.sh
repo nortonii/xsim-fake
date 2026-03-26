@@ -3,8 +3,7 @@ set -euo pipefail
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 export TORCH_EXTENSIONS_DIR="${TORCH_EXTENSIONS_DIR:-/tmp/torch_extensions}"
-export GSPLAT_ROOT="${GSPLAT_ROOT:-/mnt/data16/xuzhiy/gsplat_upstream_clean}"
-export PYTHONPATH="${PYTHONPATH:-src:${GSPLAT_ROOT}}"
+export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}src"
 CONFIG_PATH="${CONFIG_PATH:-configs/hdl64e_gsplat_joint_proxy_kitti_interp_smoothl1.yaml}"
 DATASET_ROOT="${DATASET_ROOT:-}"
 if [[ $# -gt 0 ]]; then

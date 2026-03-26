@@ -11,16 +11,16 @@ It accepts the dataset root as the first positional argument:
 ```bash
 CUDA_VISIBLE_DEVICES=3 \
 PYTHON_BIN=/mnt/data16/xuzhiy/HiGS-Calib/HiGS/bin/python \
-GSPLAT_ROOT=/mnt/data16/xuzhiy/gsplat_upstream_clean \
 bash run_joint_proxy_train.sh /path/to/dataset_root
 ```
+
+Install `gsplat` into the active environment before running. The launcher now uses the installed package directly and does not prepend the local source tree to `PYTHONPATH`.
 
 You can also override the config file explicitly:
 
 ```bash
 CUDA_VISIBLE_DEVICES=3 \
 PYTHON_BIN=/mnt/data16/xuzhiy/HiGS-Calib/HiGS/bin/python \
-GSPLAT_ROOT=/mnt/data16/xuzhiy/gsplat_upstream_clean \
 CONFIG_PATH=configs/hdl64e_gsplat_joint_proxy_kitti_interp_smoothl1.yaml \
 bash run_joint_proxy_train.sh /path/to/kitti-calibration
 ```
@@ -31,7 +31,6 @@ If you prefer environment variables instead of a positional argument:
 export DATASET_ROOT=/path/to/dataset_root
 export CONFIG_PATH=configs/hdl64e_gsplat_joint_proxy_kitti_interp_smoothl1.yaml
 export PYTHON_BIN=/mnt/data16/xuzhiy/HiGS-Calib/HiGS/bin/python
-export GSPLAT_ROOT=/mnt/data16/xuzhiy/gsplat_upstream_clean
 bash run_joint_proxy_train.sh
 ```
 
@@ -46,6 +45,6 @@ The KITTI launcher defaults to the smooth-L1 configuration above.
 ## Notes
 
 - `run_joint_proxy_train.sh` forwards the dataset root to `train.py --dataset-root`.
-- `GSPLAT_ROOT` defaults to `/mnt/data16/xuzhiy/gsplat_upstream_clean`.
+- Set `XSIM_USE_GSPLAT_SOURCE=1` and `GSPLAT_ROOT=/path/to/gsplat` only if you explicitly want to use a local source checkout instead of the installed package.
 - `TORCH_EXTENSIONS_DIR` defaults to `/tmp/torch_extensions`.
 - Temporary smoke-test YAML files are not kept in the repository; use the formal configs above for repeatable runs.
